@@ -41,6 +41,9 @@ struct wxrd_server
   struct wlr_xcursor_manager *cursor_mgr;
   struct wxrd_cursor cursor;
 
+  bool rendering;
+  bool framecycle;
+
   enum wxrd_seatop seatop;
   struct
   {

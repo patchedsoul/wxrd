@@ -521,21 +521,27 @@ _keyboard_press_cb (XrdShell *xrd_shell,
 }
 
 static void
-_request_quit_cb (XrdShell *xrd_shell,
-                  GxrQuitEvent *event,
+_state_change_cb (XrdShell *xrd_shell,
+                  GxrStateChangeEvent *event,
                   struct wxrd_server *server)
 {
-  (void)xrd_shell;
-  switch (event->reason) {
-  case GXR_QUIT_SHUTDOWN: {
-    wlr_log (WLR_DEBUG, "Quit event: Shutdown\n");
-  } break;
-  case GXR_QUIT_PROCESS_QUIT: {
-    wlr_log (WLR_DEBUG, "Quit event: Process quit\n");
-  } break;
-  case GXR_QUIT_APPLICATION_TRANSITION: {
-    wlr_log (WLR_DEBUG, "Quit event: Application transition\n");
-  } break;
+  switch (event->state_change) {
+  case GXR_STATE_SHUTDOWN:
+    server->framecycle = FALSE;
+    server->rendering = FALSE;
+    // TODO shut down
+    wlr_log (WLR_DEBUG, "Shutting down...");
+    break;
+  case GXR_STATE_FRAMECYCLE_START: server->framecycle = TRUE; break;
+  case GXR_STATE_FRAMECYCLE_STOP: server->framecycle = FALSE; break;
+  case GXR_STATE_RENDERING_START:
+    server->rendering = TRUE;
+    wlr_log (WLR_DEBUG, "Start rendering...");
+    break;
+  case GXR_STATE_RENDERING_STOP:
+    server->rendering = TRUE;
+    wlr_log (WLR_DEBUG, "Stop rendering...");
+    break;
   }
 }
 
@@ -610,8 +616,8 @@ main (int argc, char *argv[])
                           (GCallback)_keyboard_press_cb, &server);
   */
   xr_backend->quit_source
-      = g_signal_connect (xr_backend->xrd_shell, "request-quit-event",
-                          (GCallback)_request_quit_cb, &server);
+      = g_signal_connect (xr_backend->xrd_shell, "state-change-event",
+                          (GCallback)_state_change_cb, &server);
 
   wlr_renderer_init_wl_display (renderer, server.wl_display);
 
