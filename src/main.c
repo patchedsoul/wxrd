@@ -550,6 +550,16 @@ _state_change_cb (XrdShell *xrd_shell,
   }
 }
 
+static void disconnect_cb_sources (struct wxrd_xr_backend *xr_backend)
+{
+  g_signal_handler_disconnect(xr_backend->xrd_shell, xr_backend->click_source);
+  g_signal_handler_disconnect(xr_backend->xrd_shell, xr_backend->move_source);
+  g_signal_handler_disconnect(xr_backend->xrd_shell, xr_backend->quit_source);
+  xr_backend->click_source = 0;
+  xr_backend->move_source = 0;
+  xr_backend->quit_source = 0;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -717,6 +727,7 @@ main (int argc, char *argv[])
     /* shell unref will do it anyway
      *   xrd_shell_remove_window(xrdShell, xrdWin); */
   }
+  disconnect_cb_sources (server.xr_backend);
   g_object_unref (server.xr_backend->xrd_shell);
 
   wl_event_source_remove (signals[0]);
