@@ -29,7 +29,6 @@ struct wxrd_server
   struct wxrd_xr_backend *xr_backend;
 
   struct wlr_xdg_shell *xdg_shell;
-  struct wxrd_zxr_shell_v1 *xr_shell;
 
   struct wl_seat *remote_seat;
   struct wl_pointer *remote_pointer;
