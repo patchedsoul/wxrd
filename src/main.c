@@ -174,6 +174,11 @@ static void
 wxrd_submit_view_textures (struct wxrd_server *server,
                            struct wxrd_xr_view *view)
 {
+  if (!server->rendering) {
+    wlr_log (WLR_DEBUG, "skip rendering views...");
+    return;
+  }
+
   struct timespec now;
   clock_gettime (CLOCK_MONOTONIC, &now);
 
