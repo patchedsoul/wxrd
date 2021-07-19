@@ -709,6 +709,16 @@ main (int argc, char *argv[])
   }
 
   wlr_log (WLR_DEBUG, "Tearing down XR instance");
+
+  GSList *windows = xrd_shell_get_windows (server.xr_backend->xrd_shell);
+  for (GSList *l = windows; l; l = l->next) {
+    XrdWindow *xrdWin = XRD_WINDOW (l->data);
+    xrd_window_close (xrdWin);
+    /* shell unref will do it anyway
+     *   xrd_shell_remove_window(xrdShell, xrdWin); */
+  }
+  g_object_unref (server.xr_backend->xrd_shell);
+
   wl_event_source_remove (signals[0]);
   wl_event_source_remove (signals[1]);
   wl_display_destroy_clients (server.wl_display);
