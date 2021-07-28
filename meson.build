@@ -68,7 +68,7 @@ egl_dep = dependency('egl')
 wlroots_version = ['>=0.15.0']
 wlroots_proj = subproject(
   'wlroots',
-  default_options: ['examples=false'],
+  default_options: ['examples=false', 'default_library=static'],
   required: false,
   version: wlroots_version,
 )
