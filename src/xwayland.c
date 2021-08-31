@@ -573,7 +573,7 @@ handle_unmap (struct wl_listener *listener, void *data)
 static void
 get_geometry (struct wxrd_view *view, struct wlr_box *box)
 {
-  wlr_log (WLR_DEBUG, "%s", __FUNCTION__);
+  // wlr_log (WLR_DEBUG, "%s", __FUNCTION__);
 
   struct wlr_surface *surface = view_get_surface (view);
 
@@ -589,7 +589,7 @@ get_geometry (struct wxrd_view *view, struct wlr_box *box)
 static void
 handle_commit (struct wl_listener *listener, void *data)
 {
-  wlr_log (WLR_DEBUG, "%s", __FUNCTION__);
+  // wlr_log (WLR_DEBUG, "%s", __FUNCTION__);
 
   struct wxrd_xwayland_view *xwayland_view
       = wl_container_of (listener, xwayland_view, commit);
