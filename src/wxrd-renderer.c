@@ -820,6 +820,8 @@ texture_handle_buffer_destroy (struct wl_listener *listener, void *data)
   struct wxrd_texture *texture
       = wl_container_of (listener, texture, buffer_destroy);
   wlr_log (WLR_DEBUG, "texture_handle_buffer_destroy %p", (void *)texture->gk);
+
+  wxrd_texture_destroy(texture);
 }
 
 static struct wlr_texture *
