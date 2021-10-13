@@ -46,6 +46,7 @@ struct wxrd_xr_backend
   int num_windows;
 
   GulkanTexture *cursor_texture;
+  guint64 render_source;
   guint64 click_source;
   guint64 move_source;
   guint64 keyboard_source;

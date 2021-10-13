@@ -171,8 +171,7 @@ get_now_f ()
 
 
 static void
-wxrd_submit_view_textures (struct wxrd_server *server,
-                           struct wxrd_xr_view *view)
+wxrd_submit_view_textures (struct wxrd_server *server)
 {
   if (!server->rendering) {
     wlr_log (WLR_DEBUG, "skip rendering views...");
@@ -319,11 +318,9 @@ output_handle_frame (struct wl_listener *listener, void *data)
   }
 
   // our implementations are empty for now but call begin/end anyway
-  wlr_renderer_begin (renderer, 0, 0);
-
-  wxrd_submit_view_textures (server, &server->xr_backend->views[0]);
-
-  wlr_renderer_end (renderer);
+  // wlr_renderer_begin (renderer, 0, 0);
+  // TODO: render something for the desktop window
+  // wlr_renderer_end (renderer);
   wlr_output_commit (output->output);
 }
 
@@ -436,6 +433,21 @@ MessageCallback (GLenum source,
            "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
            (type == GL_DEBUG_TYPE_ERROR_KHR ? "** GL ERROR **" : ""), type,
            severity, message);
+}
+
+static void
+_render_cb (XrdShell *xrd_shell,
+            G3kRenderEvent *event,
+            struct wxrd_server *server)
+{
+  if (event->type == G3K_RENDER_EVENT_FRAME_START) {
+    // our begin/end implementations are empty for now but call begin/end anyway
+    wlr_renderer_begin (server->xr_backend->renderer, 0, 0);
+
+    wxrd_submit_view_textures (server);
+
+    wlr_renderer_end (server->xr_backend->renderer);
+  }
 }
 
 static void
@@ -619,6 +631,8 @@ main (int argc, char *argv[])
   struct wxrd_xr_backend *xr_backend = server.xr_backend;
   wlr_multi_backend_add (server.backend, &xr_backend->base);
 
+  xr_backend->render_source =
+    g_signal_connect (xr_backend->xrd_shell, "render-event", (GCallback)_render_cb, &server);
 
   xr_backend->click_source = g_signal_connect (
       xr_backend->xrd_shell, "click-event", (GCallback)_click_cb, &server);
