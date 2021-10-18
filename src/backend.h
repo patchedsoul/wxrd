@@ -33,7 +33,6 @@ struct wxrd_xr_backend
 
   bool started;
 
-  struct wlr_egl *egl;
   struct wlr_renderer *renderer;
 
   uint32_t nviews;
@@ -64,7 +63,6 @@ bool
 wxrd_backend_is_xr (struct wlr_backend *wlr_backend);
 
 struct wxrd_xr_backend *
-wxrd_xr_backend_create (struct wl_display *display,
-                        struct wlr_renderer *renderer);
+wxrd_xr_backend_create (struct wl_display *display);
 
 #endif

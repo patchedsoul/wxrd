@@ -27,6 +27,12 @@
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/backend/noop.h>
+#include <wlr/backend/libinput.h>
+
+#include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/interfaces/wlr_input_device.h>
+
 
 #include "xwayland.h"
 
@@ -209,6 +215,11 @@ wxrd_submit_view_textures (struct wxrd_server *server)
       continue;
     }
 
+    if (wxrd_view->window == NULL) {
+      wlr_log (WLR_ERROR, "skip rendering for NULL xrd window");
+      continue;
+    }
+
     if (xrd_window_get_texture (wxrd_view->window) != wxrd_tex->gk) {
       // TODO is this the right condition?
       bool has_rect = false;
@@ -278,6 +289,7 @@ wxrd_submit_view_textures (struct wxrd_server *server)
               "geometry wlr_rect is bigger than texture, not using geometry");
         }
 
+#if 0
         wlr_log (WLR_DEBUG,
                  "submit %dx%d tex %p gk %p buf %p [%zu] %s using %dx%d rect "
                  "at %d,%d: %dx%d->%dx%d",
@@ -287,6 +299,7 @@ wxrd_submit_view_textures (struct wxrd_server *server)
                  has_rect ? "" : "NOT", wlr_rect->width, wlr_rect->height,
                  wlr_rect->x, wlr_rect->y, rect.bl.x, rect.bl.y, rect.tr.x,
                  rect.tr.y);
+#endif
       }
 
       // HACK on top of a HACK: ref the texture because on circular submits it
@@ -441,12 +454,12 @@ _render_cb (XrdShell *xrd_shell,
             struct wxrd_server *server)
 {
   if (event->type == G3K_RENDER_EVENT_FRAME_START) {
-    // our begin/end implementations are empty for now but call begin/end anyway
-    wlr_renderer_begin (server->xr_backend->renderer, 0, 0);
+    // TODO: do we need renderer begin/end?
+    // wlr_renderer_begin (server->xr_backend->renderer, 0, 0);
 
     wxrd_submit_view_textures (server);
 
-    wlr_renderer_end (server->xr_backend->renderer);
+    // wlr_renderer_end (server->xr_backend->renderer);
   }
 }
 
@@ -562,11 +575,13 @@ _state_change_cb (XrdShell *xrd_shell,
   }
 }
 
-static void disconnect_cb_sources (struct wxrd_xr_backend *xr_backend)
+static void
+disconnect_cb_sources (struct wxrd_xr_backend *xr_backend)
 {
-  g_signal_handler_disconnect(xr_backend->xrd_shell, xr_backend->click_source);
-  g_signal_handler_disconnect(xr_backend->xrd_shell, xr_backend->move_source);
-  g_signal_handler_disconnect(xr_backend->xrd_shell, xr_backend->quit_source);
+  g_signal_handler_disconnect (xr_backend->xrd_shell,
+                               xr_backend->click_source);
+  g_signal_handler_disconnect (xr_backend->xrd_shell, xr_backend->move_source);
+  g_signal_handler_disconnect (xr_backend->xrd_shell, xr_backend->quit_source);
   xr_backend->click_source = 0;
   xr_backend->move_source = 0;
   xr_backend->quit_source = 0;
@@ -608,50 +623,87 @@ main (int argc, char *argv[])
     return 1;
   }
 
-  server.backend = wlr_backend_autocreate (server.wl_display);
+  bool is_nested = false;
+  if (getenv ("DISPLAY") != NULL || getenv ("WAYLAND_DISPLAY") != NULL) {
+    is_nested = true;
+  }
+
+  server.xr_backend = wxrd_xr_backend_create (server.wl_display);
+  if (server.xr_backend == NULL) {
+    wlr_log (WLR_ERROR, "xr backend creation failed");
+    return 1;
+  }
+  struct wlr_renderer *wxrd_renderer = server.xr_backend->renderer;
+
+
+  char *headless_env = getenv ("WXRD_HEADLESS");
+  struct wlr_backend *noop_backend = NULL;
+
+  bool headless_mode = headless_env || !is_nested;
+
+  if (headless_mode) {
+    server.backend = wlr_multi_backend_create (server.wl_display);
+
+    noop_backend = wlr_noop_backend_create (server.wl_display);
+    wlr_multi_backend_add (server.backend, noop_backend);
+
+    // TODO: input on headless/drm
+#if 0
+    if (!is_nested) {
+      server.libinput_backend
+          = wlr_libinput_backend_create (server.wl_display, server.session);
+      if (server.libinput_backend == NULL) {
+        return false;
+      }
+      wlr_multi_backend_add (server.backend, server.libinput_backend);
+    }
+#endif
+
+  } else {
+    server.backend = wlr_backend_autocreate (server.wl_display);
+  }
   if (server.backend == NULL) {
     wlr_log (WLR_ERROR, "Failed to create native backend");
     return 1;
   }
-  wlr_multi_for_each_backend (server.backend, backend_iterator, &server);
 
   server.new_output.notify = handle_new_output;
   wl_signal_add (&server.backend->events.new_output, &server.new_output);
 
-  // struct wlr_renderer *renderer = wlr_backend_get_renderer (server.backend);
-  struct wlr_renderer *backend_renderer
-      = wlr_backend_get_renderer (server.backend);
-  struct wlr_renderer *renderer = wxrd_renderer_create (backend_renderer);
+  wlr_multi_backend_add (server.backend, &server.xr_backend->base);
 
-  server.xr_backend = wxrd_xr_backend_create (server.wl_display, renderer);
-  if (server.xr_backend == NULL || server.backend == NULL) {
-    wlr_log (WLR_ERROR, "backend creation failed");
-    return 1;
-  }
-  struct wxrd_xr_backend *xr_backend = server.xr_backend;
-  wlr_multi_backend_add (server.backend, &xr_backend->base);
+  wlr_multi_for_each_backend (server.backend, backend_iterator, &server);
 
-  xr_backend->render_source =
-    g_signal_connect (xr_backend->xrd_shell, "render-event", (GCallback)_render_cb, &server);
 
-  xr_backend->click_source = g_signal_connect (
-      xr_backend->xrd_shell, "click-event", (GCallback)_click_cb, &server);
-  xr_backend->move_source
-      = g_signal_connect (xr_backend->xrd_shell, "move-cursor-event",
+
+  // hack to avoid an assertion
+  //   renderer->rendering = true;
+  //   backend_renderer->rendering = true;
+
+  server.xr_backend->render_source
+      = g_signal_connect (server.xr_backend->xrd_shell, "render-event",
+                          (GCallback)_render_cb, &server);
+
+  server.xr_backend->click_source
+      = g_signal_connect (server.xr_backend->xrd_shell, "click-event",
+                          (GCallback)_click_cb, &server);
+  server.xr_backend->move_source
+      = g_signal_connect (server.xr_backend->xrd_shell, "move-cursor-event",
                           (GCallback)_move_cursor_cb, &server);
   /* TODO: new keyboard event
   xr_backend->keyboard_source
   = g_signal_connect (xr_backend->xrd_shell, "keyboard-press-event",
                           (GCallback)_keyboard_press_cb, &server);
   */
-  xr_backend->quit_source
-      = g_signal_connect (xr_backend->xrd_shell, "state-change-event",
+  server.xr_backend->quit_source
+      = g_signal_connect (server.xr_backend->xrd_shell, "state-change-event",
                           (GCallback)_state_change_cb, &server);
 
-  wlr_renderer_init_wl_display (renderer, server.wl_display);
+  wlr_renderer_init_wl_display (wxrd_renderer, server.wl_display);
 
   struct wlr_compositor *compositor
-      = wlr_compositor_create (server.wl_display, renderer);
+      = wlr_compositor_create (server.wl_display, wxrd_renderer);
+
   wlr_data_device_manager_create (server.wl_display);
   wlr_data_control_manager_v1_create (server.wl_display);
   wlr_primary_selection_v1_device_manager_create (server.wl_display);
@@ -677,6 +729,37 @@ main (int argc, char *argv[])
   wl_global_create (server.wl_display, &wl_output_interface, 3, NULL,
                     output_bind);
 
+  if (headless_mode) {
+    server.headless.output = wlr_noop_add_output (noop_backend);
+
+    int w = 800;
+    int h = 600;
+    int refresh = 60;
+    wlr_output_enable (server.headless.output, true);
+    wlr_output_set_custom_mode (server.headless.output, w, h, refresh * 1000);
+    if (!wlr_output_commit (server.headless.output)) {
+      wlr_log (WLR_ERROR, "Failed to commit noop output");
+      return false;
+    }
+
+    wlr_output_create_global (server.headless.output);
+
+
+    // Create a stub wlr_keyboard only used to set the keymap
+    // We need to wait for the backend to be started before adding the device
+    server.headless.virtual_kbd
+        = (struct wlr_keyboard *)calloc (1, sizeof (struct wlr_keyboard));
+    wlr_keyboard_init (server.headless.virtual_kbd, NULL);
+
+    struct wlr_input_device *kbd_dev
+        = (struct wlr_input_device *)calloc (1, sizeof (*kbd_dev));
+    wlr_input_device_init (kbd_dev, WLR_INPUT_DEVICE_KEYBOARD, NULL, "virtual",
+                           0, 0);
+    kbd_dev->keyboard = server.headless.virtual_kbd;
+  }
+
+
+#if 1
   wlr_log (WLR_DEBUG, "initializing xwayland");
   server.xwayland.wlr_xwayland
       = wlr_xwayland_create (server.wl_display, compositor, true);
@@ -696,6 +779,7 @@ main (int argc, char *argv[])
     unsetenv ("DISPLAY");
     wlr_log (WLR_DEBUG, "Failed to initialize xwayland");
   }
+#endif
 
   setenv ("WAYLAND_DISPLAY", wl_socket, true);
   if (startup_cmd != NULL) {

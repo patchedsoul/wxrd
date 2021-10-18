@@ -117,8 +117,7 @@ xrdesktop_init (struct wxrd_xr_backend *backend)
 }
 
 struct wxrd_xr_backend *
-wxrd_xr_backend_create (struct wl_display *display,
-                        struct wlr_renderer *renderer)
+wxrd_xr_backend_create (struct wl_display *display)
 {
   struct wxrd_xr_backend *backend = calloc (1, sizeof (*backend));
   if (backend == NULL) {
@@ -126,9 +125,6 @@ wxrd_xr_backend_create (struct wl_display *display,
     return NULL;
   }
   wlr_backend_init (&backend->base, &backend_impl);
-
-  backend->egl = wxrd_renderer_get_egl (renderer);
-  backend->renderer = renderer;
 
   backend->local_display_destroy.notify = handle_display_destroy;
   wl_display_add_destroy_listener (display, &backend->local_display_destroy);
@@ -139,8 +135,10 @@ wxrd_xr_backend_create (struct wl_display *display,
     return NULL;
   }
 
+  GulkanClient *gc = xrd_shell_get_gulkan (backend->xrd_shell);
+  backend->renderer = wxrd_renderer_create (gc);
 
-  struct wxrd_renderer *wxrd_r = wxrd_get_renderer (renderer);
+  struct wxrd_renderer *wxrd_r = wxrd_get_renderer (backend->renderer);
   wxrd_r->xrd_shell = backend->xrd_shell;
 
   return backend;

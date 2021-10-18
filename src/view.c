@@ -95,9 +95,13 @@ wxrd_set_focus (struct wxrd_view *view)
 
   struct wlr_seat *seat = server->seat;
   struct wlr_keyboard *keyboard = wlr_seat_get_keyboard (seat);
-  wlr_seat_keyboard_notify_enter (seat, surface, keyboard->keycodes,
-                                  keyboard->num_keycodes,
-                                  &keyboard->modifiers);
+  if (keyboard == NULL) {
+    wlr_log (WLR_ERROR, "keyboard notify not possible on NULL keyboard");
+  } else {
+    wlr_seat_keyboard_notify_enter (seat, surface, keyboard->keycodes,
+                                    keyboard->num_keycodes,
+                                    &keyboard->modifiers);
+  }
 
   if (view->impl->set_activated) {
     view->impl->set_activated (view, true);

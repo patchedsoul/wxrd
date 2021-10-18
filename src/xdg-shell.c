@@ -65,11 +65,20 @@ close_view (struct wxrd_view *view)
 }
 
 static void
+get_content_rect_size_from_xdg_surface (struct wlr_xdg_surface *xdg_surface,
+                                        int *width,
+                                        int *height)
+{
+  *width = xdg_surface->current.geometry.width;
+  *height = xdg_surface->current.geometry.height;
+}
+
+static void
 get_content_rect_size (struct wxrd_view *view, int *width, int *height)
 {
   struct wxrd_xdg_shell_view *xdg_view = xdg_shell_view_from_view (view);
-  *width = xdg_view->xdg_surface->geometry.width;
-  *height = xdg_view->xdg_surface->geometry.height;
+  get_content_rect_size_from_xdg_surface (xdg_view->xdg_surface, width,
+                                          height);
 }
 
 static void
@@ -135,8 +144,12 @@ handle_xdg_surface_map (struct wl_listener *listener, void *data)
       wlr_xdg_popup_unconstrain_from_box (view->xdg_surface->popup, &big_box);
       struct wlr_xdg_positioner *pos = &view->xdg_surface->popup->positioner;
 
-      int parent_center_x = xdg_surf_parent->geometry.width / 2;
-      int parent_center_y = xdg_surf_parent->geometry.height / 2;
+      int content_width, content_height;
+      get_content_rect_size_from_xdg_surface (xdg_surf_parent, &content_width,
+                                              &content_height);
+
+      int parent_center_x = content_width / 2;
+      int parent_center_y = content_height / 2;
 
       int child_center_x = pos->anchor_rect.x + pos->size.width / 2;
       int child_center_y = pos->anchor_rect.y + pos->size.height / 2;

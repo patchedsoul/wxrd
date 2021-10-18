@@ -33,6 +33,12 @@
 // save updated region on shm textures as /tmp/updated_texture_region-i.png
 // #define SAVE_UPDATED_TEXTURE_REGION
 
+#if 0
+#define TRACE_FN wlr_log (WLR_DEBUG, "TRACE %s", __FUNCTION__);
+#else
+#define TRACE_FN
+#endif
+
 #if defined(SAVE_UPDATED_TEXTURE) || defined(SAVE_UPDATED_TEXTURE_REGION)
 #include <gdk/gdk.h>
 static void
@@ -57,6 +63,7 @@ static const struct wlr_renderer_impl renderer_impl;
 struct wxrd_renderer *
 wxrd_get_renderer (struct wlr_renderer *wlr_renderer)
 {
+  TRACE_FN
   assert (wlr_renderer->impl == &renderer_impl);
   return (struct wxrd_renderer *)wlr_renderer;
 }
@@ -157,6 +164,7 @@ struct
 const uint32_t *
 get_wxrd_shm_formats (size_t *len)
 {
+  TRACE_FN
   static uint32_t shm_formats[sizeof (formats) / sizeof (formats[0])];
   *len = sizeof (formats) / sizeof (formats[0]);
   for (size_t i = 0; i < sizeof (formats) / sizeof (formats[0]); i++) {
@@ -168,6 +176,7 @@ get_wxrd_shm_formats (size_t *len)
 const struct wxrd_pixel_format *
 get_wxrd_format_from_drm (uint32_t fmt)
 {
+  TRACE_FN
   for (size_t i = 0; i < sizeof (formats) / sizeof (*formats); ++i) {
     if (formats[i].drm_format == fmt) {
       return &formats[i];
@@ -179,6 +188,7 @@ get_wxrd_format_from_drm (uint32_t fmt)
 const struct wxrd_pixel_format *
 get_wxrd_format_from_vk (VkFormat vk_format, bool alpha)
 {
+  TRACE_FN
   for (size_t i = 0; i < sizeof (formats) / sizeof (*formats); ++i) {
     if (formats[i].vk_format == vk_format) {
       return &formats[i];
@@ -191,20 +201,28 @@ static void
 wxrd_render_begin (struct wlr_renderer *wlr_renderer,
                    uint32_t width,
                    uint32_t height)
-{}
+{
+  TRACE_FN
+}
 
 static void
 wxrd_render_end (struct wlr_renderer *wlr_renderer)
-{}
+{
+  TRACE_FN
+}
 
 static void
 wxrd_render_clear (struct wlr_renderer *wlr_renderer,
                    const float color[static 4])
-{}
+{
+  TRACE_FN
+}
 
 static void
 wxrd_render_scissor (struct wlr_renderer *wlr_renderer, struct wlr_box *box)
-{}
+{
+  TRACE_FN
+}
 
 static bool
 wxrd_render_subtexture_with_matrix (struct wlr_renderer *wlr_renderer,
@@ -213,6 +231,7 @@ wxrd_render_subtexture_with_matrix (struct wlr_renderer *wlr_renderer,
                                     const float matrix[static 9],
                                     float alpha)
 {
+  TRACE_FN
   wlr_log (WLR_ERROR, "unimplemented render sub texture");
   return true;
 }
@@ -222,12 +241,14 @@ wxrd_render_quad_with_matrix (struct wlr_renderer *wlr_renderer,
                               const float color[static 4],
                               const float matrix[static 9])
 {
+  TRACE_FN
   wlr_log (WLR_ERROR, "unimplemented render quat");
 }
 
 static const uint32_t *
 wxrd_renderer_formats (struct wlr_renderer *wlr_renderer, size_t *len)
 {
+  TRACE_FN
   return get_wxrd_shm_formats (len);
 }
 
@@ -235,17 +256,21 @@ static bool
 wxrd_resource_is_wl_drm_buffer (struct wlr_renderer *wlr_renderer,
                                 struct wl_resource *resource)
 {
-  struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
-
-  if (!egl->exts.bind_wayland_display_wl) {
-    return false;
-  }
-
-  EGLint fmt;
-  return egl->procs.eglQueryWaylandBufferWL (egl->display, resource,
-                                             EGL_TEXTURE_FORMAT, &fmt);
+  TRACE_FN
+  wlr_log (WLR_ERROR, "unimplemented %s", __FUNCTION__);
+  return false;
 }
+//   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
+//   struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
+//
+//   if (!egl->exts.bind_wayland_display_wl) {
+//     return false;
+//   }
+//
+//   EGLint fmt;
+//   return egl->procs.eglQueryWaylandBufferWL (egl->display, resource,
+//                                              EGL_TEXTURE_FORMAT, &fmt);
+// }
 
 static void
 wxrd_wl_drm_buffer_get_size (struct wlr_renderer *wlr_renderer,
@@ -253,17 +278,22 @@ wxrd_wl_drm_buffer_get_size (struct wlr_renderer *wlr_renderer,
                              int *width,
                              int *height)
 {
-  struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
-
-  if (!egl->exts.bind_wayland_display_wl) {
-    return;
-  }
-
-  egl->procs.eglQueryWaylandBufferWL (egl->display, buffer, EGL_WIDTH, width);
-  egl->procs.eglQueryWaylandBufferWL (egl->display, buffer, EGL_HEIGHT,
-                                      height);
+  TRACE_FN
+  wlr_log (WLR_ERROR, "unimplemented %s", __FUNCTION__);
+  return;
 }
+//   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
+//   struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
+//
+//   if (!egl->exts.bind_wayland_display_wl) {
+//     return;
+//   }
+//
+//   egl->procs.eglQueryWaylandBufferWL (egl->display, buffer, EGL_WIDTH,
+//   width); egl->procs.eglQueryWaylandBufferWL (egl->display, buffer,
+//   EGL_HEIGHT,
+//                                       height);
+// }
 
 static struct wlr_drm_format_set supported_formats = { 0 };
 
@@ -273,6 +303,7 @@ init_formats (VkPhysicalDevice physicalDevice);
 static const struct wlr_drm_format_set *
 wxrd_get_dmabuf_formats (struct wlr_renderer *wlr_renderer)
 {
+  TRACE_FN
   if (supported_formats.len == 0) {
     struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
     GulkanClient *gulkan = xrd_shell_get_gulkan (renderer->xrd_shell);
@@ -284,14 +315,18 @@ wxrd_get_dmabuf_formats (struct wlr_renderer *wlr_renderer)
 static const struct wlr_drm_format_set *
 wxrd_get_dmabuf_render_formats (struct wlr_renderer *wlr_renderer)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
-  return wlr_egl_get_dmabuf_render_formats (egl);
+  wlr_log (WLR_ERROR, "unimplemented %s", __FUNCTION__);
+  return NULL;
+  //   struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
+  //   return wlr_egl_get_dmabuf_render_formats (egl);
 }
 
 static uint32_t
 wxrd_preferred_read_format (struct wlr_renderer *wlr_renderer)
 {
+  TRACE_FN
   // struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
 
   GLint gl_format = -1, gl_type = -1;
@@ -327,6 +362,7 @@ wxrd_read_pixels (struct wlr_renderer *wlr_renderer,
                   uint32_t dst_y,
                   void *data)
 {
+  TRACE_FN
   const struct wxrd_pixel_format *fmt = get_wxrd_format_from_drm (drm_format);
   if (fmt == NULL) {
     wlr_log (WLR_ERROR, "Cannot read pixels: unsupported pixel format");
@@ -340,55 +376,17 @@ wxrd_read_pixels (struct wlr_renderer *wlr_renderer,
 static int
 wxrd_get_drm_fd (struct wlr_renderer *wlr_renderer)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
 
-  if (renderer->drm_fd < 0) {
-    renderer->drm_fd = wlr_egl_dup_drm_fd (egl);
-  }
-
+  wlr_log (WLR_DEBUG, "get drm fd %d", renderer->drm_fd);
   return renderer->drm_fd;
-}
-
-static bool
-wxrd_init_wl_display (struct wlr_renderer *wlr_renderer,
-                      struct wl_display *wl_display)
-{
-  struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
-
-  if (egl->exts.bind_wayland_display_wl) {
-    if (!wlr_egl_bind_display (egl, wl_display)) {
-      wlr_log (WLR_ERROR, "Failed to bind wl_display to EGL");
-      return false;
-    }
-  } else {
-    wlr_log (WLR_INFO, "EGL_WL_bind_wayland_display is not supported");
-  }
-
-  if (egl->exts.image_dmabuf_import_ext) {
-    if (wlr_linux_dmabuf_v1_create (wl_display, wlr_renderer) == NULL) {
-      return false;
-    }
-  } else {
-    wlr_log (WLR_INFO, "EGL_EXT_image_dma_buf_import is not supported");
-  }
-
-  return true;
-}
-
-struct wlr_egl *
-wxrd_renderer_get_egl (struct wlr_renderer *wlr_renderer)
-{
-  struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl
-      = wlr_gles2_renderer_get_egl (renderer->wlr_backend_renderer);
-  return egl;
 }
 
 static void
 wxrd_render_destroy (struct wlr_renderer *wlr_renderer)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
   if (renderer->drm_fd >= 0) {
     close (renderer->drm_fd);
@@ -399,6 +397,7 @@ wxrd_render_destroy (struct wlr_renderer *wlr_renderer)
 static bool
 wxrd_texture_is_opaque (struct wlr_texture *wlr_texture)
 {
+  TRACE_FN
   struct wxrd_texture *texture = wxrd_get_texture (wlr_texture);
   return !texture->has_alpha;
 }
@@ -420,6 +419,7 @@ wxrd_texture_write_pixels (struct wlr_texture *wlr_texture,
                            uint32_t dst_y,
                            const void *data)
 {
+  TRACE_FN
   struct wxrd_texture *texture = wxrd_get_texture (wlr_texture);
 
   const struct wxrd_pixel_format *fmt
@@ -497,15 +497,13 @@ wxrd_texture_write_pixels (struct wlr_texture *wlr_texture,
 #endif
   }
 
-  struct wlr_egl *egl
-      = wxrd_renderer_get_egl (&texture->renderer->wlr_renderer);
-  wlr_egl_unset_current (egl);
   return true;
 }
 
 static void
 wxrd_texture_destroy (struct wxrd_texture *texture)
 {
+  TRACE_FN
   wl_list_remove (&texture->link);
   wl_list_remove (&texture->buffer_destroy.link);
 #ifdef DEBUG_BUFFER_LOCKS
@@ -535,6 +533,7 @@ wxrd_texture_destroy (struct wxrd_texture *texture)
 static void
 wxrd_texture_unref (struct wlr_texture *wlr_texture)
 {
+  TRACE_FN
   struct wxrd_texture *texture = wxrd_get_texture (wlr_texture);
   if (texture->buffer != NULL) {
     // Keep the texture around, in case the buffer is re-used later. We're
@@ -567,6 +566,7 @@ wxrd_texture_from_pixels (struct wlr_renderer *wlr_renderer,
                           uint32_t height,
                           const void *data)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
   const struct wxrd_pixel_format *fmt = get_wxrd_format_from_drm (drm_format);
   if (fmt == NULL) {
@@ -615,12 +615,13 @@ struct wlr_texture *
 wxrd_texture_from_wl_drm (struct wlr_renderer *wlr_renderer,
                           struct wl_resource *resource)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
 
   // TODO: can this be implemented on vulkan without using EGL as a middleman?
   wlr_log (WLR_ERROR, "unimplemented: wxrd_texture_from_wl_drm");
 
+#if 0
   if (!renderer->procs.glEGLImageTargetTexture2DOES) {
     return NULL;
   }
@@ -643,6 +644,7 @@ wxrd_texture_from_wl_drm (struct wlr_renderer *wlr_renderer,
   }
   wlr_texture_init (&texture->wlr_texture, &texture_impl, width, height);
   texture->renderer = renderer;
+#endif
 
   return NULL;
 }
@@ -650,6 +652,7 @@ wxrd_texture_from_wl_drm (struct wlr_renderer *wlr_renderer,
 static struct GulkanDmabufAttributes
 _make_gulkan_attribs (struct wlr_dmabuf_attributes *attrib)
 {
+  TRACE_FN
   assert (WLR_DMABUF_MAX_PLANES == GULKAN_DMABUF_MAX_PLANES);
   assert (sizeof (struct wlr_dmabuf_attributes)
           == sizeof (struct GulkanDmabufAttributes));
@@ -671,6 +674,7 @@ _make_gulkan_attribs (struct wlr_dmabuf_attributes *attrib)
 void
 init_formats (VkPhysicalDevice vk_physical_device)
 {
+  TRACE_FN
   // only handle formats we explicitly know the drm->vk mapping for
   for (size_t i = 0; format_table[i].drm_format != DRM_FORMAT_INVALID; i++) {
     VkFormat format = format_table[i].vk_format;
@@ -761,6 +765,7 @@ struct wlr_texture *
 wxrd_texture_from_dmabuf (struct wlr_renderer *wlr_renderer,
                           struct wlr_dmabuf_attributes *attribs)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
 
   struct wxrd_texture *texture = calloc (1, sizeof (struct wxrd_texture));
@@ -810,6 +815,7 @@ wxrd_texture_from_dmabuf (struct wlr_renderer *wlr_renderer,
 static uint32_t
 wxrd_get_render_buffer_caps (struct wlr_renderer *renderer)
 {
+  TRACE_FN
   // wlr_log (WLR_ERROR, "wxrd_get_render_buffer_caps: dmabuf");
   return WLR_BUFFER_CAP_DMABUF;
 }
@@ -817,6 +823,7 @@ wxrd_get_render_buffer_caps (struct wlr_renderer *renderer)
 static void
 texture_handle_buffer_destroy (struct wl_listener *listener, void *data)
 {
+  TRACE_FN
   struct wxrd_texture *texture
       = wl_container_of (listener, texture, buffer_destroy);
   wlr_log (WLR_DEBUG, "texture_handle_buffer_destroy %p", (void *)texture->gk);
@@ -829,6 +836,7 @@ wxrd_texture_from_dmabuf_buffer (struct wxrd_renderer *renderer,
                                  struct wlr_buffer *buffer,
                                  struct wlr_dmabuf_attributes *dmabuf)
 {
+  TRACE_FN
   struct wxrd_texture *texture;
   // wlr_log (WLR_DEBUG, "wxrd_texture_from_dmabuf_buffer");
 
@@ -854,7 +862,7 @@ wxrd_texture_from_dmabuf_buffer (struct wxrd_renderer *renderer,
   }
 
   struct wlr_texture *wlr_texture
-      = wxrd_texture_from_dmabuf (&renderer->wlr_renderer, dmabuf);
+      = wxrd_texture_from_dmabuf (&renderer->base, dmabuf);
   if (wlr_texture == NULL) {
     return false;
   }
@@ -880,11 +888,12 @@ _buffer_begin_data_ptr_access (struct wlr_buffer *buffer,
                                uint32_t *format,
                                size_t *stride)
 {
+  TRACE_FN
   assert (!buffer->accessing_data_ptr);
   if (!buffer->impl->begin_data_ptr_access) {
     return false;
   }
-  if (!buffer->impl->begin_data_ptr_access (buffer, data, format, stride)) {
+  if (!buffer->impl->begin_data_ptr_access (buffer, 0, data, format, stride)) {
     return false;
   }
   buffer->accessing_data_ptr = true;
@@ -894,6 +903,7 @@ _buffer_begin_data_ptr_access (struct wlr_buffer *buffer,
 static void
 _buffer_end_data_ptr_access (struct wlr_buffer *buffer)
 {
+  TRACE_FN
   assert (buffer->accessing_data_ptr);
   buffer->impl->end_data_ptr_access (buffer);
   buffer->accessing_data_ptr = false;
@@ -903,9 +913,9 @@ struct wlr_texture *
 wxrd_texture_from_buffer (struct wlr_renderer *wlr_renderer,
                           struct wlr_buffer *buffer)
 {
+  TRACE_FN
   struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
 
-  // wlr_log (WLR_DEBUG, "wxrd_texture_from_buffer");
   void *data;
   uint32_t format;
   size_t stride;
@@ -918,6 +928,7 @@ wxrd_texture_from_buffer (struct wlr_renderer *wlr_renderer,
     _buffer_end_data_ptr_access (buffer);
     return tex;
   } else {
+    wlr_log (WLR_ERROR, "buffer is neither dma buf nor pixel buffer");
     return NULL;
   }
 
@@ -929,6 +940,7 @@ static bool
 wxrd_bind_buffer (struct wlr_renderer *wlr_renderer,
                   struct wlr_buffer *wlr_buffer)
 {
+  TRACE_FN
   wlr_log (WLR_ERROR, "bind buffer");
   return true;
 }
@@ -943,48 +955,99 @@ static const struct wlr_renderer_impl renderer_impl = {
   .render_subtexture_with_matrix = wxrd_render_subtexture_with_matrix,
   .render_quad_with_matrix = wxrd_render_quad_with_matrix,
   .get_shm_texture_formats = wxrd_renderer_formats,
-  .resource_is_wl_drm_buffer = wxrd_resource_is_wl_drm_buffer,
-  .wl_drm_buffer_get_size = wxrd_wl_drm_buffer_get_size,
   .get_dmabuf_texture_formats = wxrd_get_dmabuf_formats,
   .get_render_formats = wxrd_get_dmabuf_render_formats,
   .preferred_read_format = wxrd_preferred_read_format,
   .read_pixels = wxrd_read_pixels,
-  .texture_from_pixels = wxrd_texture_from_pixels,
-  .texture_from_wl_drm = wxrd_texture_from_wl_drm,
-  .texture_from_dmabuf = wxrd_texture_from_dmabuf,
-  .init_wl_display = wxrd_init_wl_display,
   .get_drm_fd = wxrd_get_drm_fd,
   .get_render_buffer_caps = wxrd_get_render_buffer_caps,
   .texture_from_buffer = wxrd_texture_from_buffer,
 };
 
-struct wlr_renderer *
-wxrd_renderer_create (struct wlr_renderer *backend_renderer)
+#include <xf86drm.h>
+#include <fcntl.h>
+
+static bool
+_vulkan_init (struct wxrd_renderer *renderer, GulkanClient *gc)
 {
+  TRACE_FN
+  VkInstance instance = gulkan_client_get_instance_handle (gc);
+  VkPhysicalDevice physical_device
+      = gulkan_client_get_physical_device_handle (gc);
+  VkDevice device = gulkan_client_get_device_handle (gc);
+
+  drmDevice *drmDevices[32];
+  int drmDevicesLen = drmGetDevices2 (
+      0, drmDevices, sizeof (drmDevices) / sizeof (drmDevices[0]));
+  if (drmDevicesLen < 0) {
+    wlr_log (WLR_ERROR, "drmGetDevices2 failed");
+    return false;
+  }
+
+
+  drmDevice *dev = NULL;
+  for (int i = 0; i < drmDevicesLen; i++) {
+    drmDevice *drmDev = drmDevices[i];
+    if (!(drmDev->available_nodes & (1 << DRM_NODE_RENDER))) {
+      continue;
+    }
+
+    // TODO: match drm device with the one we got from gulkan
+    dev = drmDevices[i];
+    break;
+  }
+
+  if (!dev) {
+    wlr_log (WLR_ERROR, "didn't find a suitable render node");
+    return false;
+  }
+
+  renderer->drm_fd = open (dev->nodes[DRM_NODE_RENDER], O_RDWR | O_CLOEXEC);
+  if (renderer->drm_fd < 0) {
+    wlr_log (WLR_ERROR, "failed to open render node");
+  }
+
+  wlr_log (WLR_DEBUG, "opened render node: %s", dev->nodes[DRM_NODE_RENDER]);
+
+  drmFreeDevices (drmDevices, drmDevicesLen);
+
+  return true;
+}
+
+struct wlr_renderer *
+wxrd_renderer_create (GulkanClient *gc)
+{
+  TRACE_FN
   struct wxrd_renderer *renderer = calloc (1, sizeof (struct wxrd_renderer));
   if (renderer == NULL) {
     return NULL;
   }
-  wlr_renderer_init (&renderer->wlr_renderer, &renderer_impl);
+
+  renderer->drm_fd = -1;
+  if (!_vulkan_init (renderer, gc)) {
+    wlr_log (WLR_ERROR, "vulkan init failed");
+    return NULL;
+  }
+
+  wlr_renderer_init (&renderer->base, &renderer_impl);
 
   wl_list_init (&renderer->buffers);
   wl_list_init (&renderer->textures);
 
-  renderer->drm_fd = -1;
-  renderer->wlr_backend_renderer = backend_renderer;
-
-  return &renderer->wlr_renderer;
+  return &renderer->base;
 }
 
 bool
 wlr_texture_is_wxrd (struct wlr_texture *wlr_texture)
 {
+  TRACE_FN
   return wlr_texture->impl == &texture_impl;
 }
 
 struct wxrd_texture *
 wxrd_get_texture (struct wlr_texture *wlr_texture)
 {
+  TRACE_FN
   assert (wlr_texture_is_wxrd (wlr_texture));
   return (struct wxrd_texture *)wlr_texture;
 }

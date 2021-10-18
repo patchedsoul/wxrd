@@ -590,6 +590,10 @@ wxrd_input_init (struct wxrd_server *server)
   wl_list_init (&server->pointers);
 
   server->seat = wlr_seat_create (server->wl_display, "seat0");
+  wlr_seat_set_capabilities (server->seat, WL_SEAT_CAPABILITY_POINTER
+                                               | WL_SEAT_CAPABILITY_KEYBOARD
+                                               | WL_SEAT_CAPABILITY_TOUCH);
+
   server->cursor_mgr = wlr_xcursor_manager_create (NULL, 24);
   wlr_xcursor_manager_load (server->cursor_mgr, 2);
 

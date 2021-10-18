@@ -38,19 +38,10 @@ struct wxrd_pixel_format
 
 struct wxrd_renderer
 {
-  struct wlr_renderer wlr_renderer;
-  struct wlr_renderer *wlr_backend_renderer;
+  struct wlr_renderer base;
 
   // required to deal with wayland egl buffers
   // struct wlr_egl *egl;
-
-  struct
-  {
-    PFNGLEGLIMAGETARGETTEXTURE2DOESPROC
-    glEGLImageTargetTexture2DOES;
-    PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC
-    glEGLImageTargetRenderbufferStorageOES;
-  } procs;
 
   struct wl_list buffers;  // wlr_gles2_buffer.link
   struct wl_list textures; // wlr_gles2_texture.link
@@ -110,8 +101,6 @@ wxrd_texture_from_dmabuf (struct wlr_renderer *wlr_renderer,
                           struct wlr_dmabuf_attributes *attribs);
 
 struct wlr_renderer *
-wxrd_renderer_create (struct wlr_renderer *backend_renderer);
-struct wlr_egl *
-wxrd_renderer_get_egl (struct wlr_renderer *renderer);
+wxrd_renderer_create (GulkanClient *gc);
 
 #endif

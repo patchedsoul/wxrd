@@ -27,6 +27,14 @@ struct wxrd_server
   struct wlr_backend *backend;
   struct wxrd_xr_backend *xr_backend;
 
+  // used with noop backend
+  struct
+  {
+    struct wlr_backend *libinput_backend;
+    struct wlr_output *output;
+    struct wlr_keyboard *virtual_kbd;
+  } headless;
+
   struct wlr_xdg_shell *xdg_shell;
 
   struct wl_seat *remote_seat;
