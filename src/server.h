@@ -9,7 +9,6 @@
 #ifndef WXRC_SERVER_H
 #define WXRC_SERVER_H
 #include "input.h"
-#include <cglm/cglm.h>
 #include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/render/wlr_texture.h>

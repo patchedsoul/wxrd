@@ -34,8 +34,6 @@
 
 #include <wlr/util/log.h>
 
-#include <cglm/cglm.h>
-
 #include <GLES2/gl2.h>
 
 #include "backend.h"

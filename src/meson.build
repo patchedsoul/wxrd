@@ -18,7 +18,6 @@ executable(
 		wayland_client_dep,
 		xrdesktop_dep,
 		wlroots_dep,
-		cglm_dep,
 		glesv2_dep,
 		egl_dep,
 		xkbcommon_dep,

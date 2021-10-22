@@ -9,7 +9,6 @@
 #ifndef _WXRC_INPUT_H
 #define _WXRC_INPUT_H
 
-#include <cglm/cglm.h>
 #include <wayland-server.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_xcursor_manager.h>

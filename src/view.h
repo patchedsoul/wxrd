@@ -8,7 +8,6 @@
 
 #ifndef WXRC_VIEW_H
 #define WXRC_VIEW_H
-#include <cglm/cglm.h>
 #include <stdbool.h>
 #include <wayland-server.h>
 #include <wlr/config.h>
