@@ -23,4 +23,4 @@ executable(
 		xkbcommon_dep,
 	],
 	include_directories: [src_inc],
-	install: false)
+	install: true)
