@@ -232,6 +232,7 @@ wxrd_submit_view_textures (struct wxrd_server *server)
         wlr_log (WLR_DEBUG, "buffer source box %f,%f %fx%f", buffer_source_box.x, buffer_source_box.y, buffer_source_box.width, buffer_source_box.height);
         wlr_log (WLR_DEBUG, "buffer position %d,%d", surface->sx, surface->sy);
 
+#if 0
         struct wlr_subsurface *subsurface;
         wl_list_for_each (subsurface, &surface->subsurfaces_below, parent_link)
         {
@@ -241,6 +242,7 @@ wxrd_submit_view_textures (struct wxrd_server *server)
         {
           wlr_log (WLR_DEBUG, "subsurface %dx%d above at %d,%d", subsurface->surface->current.width, subsurface->surface->current.height, subsurface->current.x, subsurface->current.y);
         }
+#endif
 #endif
 
         struct wlr_box geometry;
