@@ -29,7 +29,27 @@ wxrd_view_init (struct wxrd_view *view,
 void
 wxrd_view_finish (struct wxrd_view *view)
 {
-  wlr_log (WLR_DEBUG, "finish view %p", (void **)view);
+  wlr_log (WLR_DEBUG, "finish view %p on thread %p", (void *)view,
+           (void *)g_thread_self ());
+
+  if (view->window) {
+    wlr_log (WLR_DEBUG, "Closing window %p", (void *)view->window);
+
+    xrd_shell_remove_window (view->server->xr_backend->xrd_shell,
+                             view->window);
+    xrd_window_close (view->window);
+    g_object_unref (view->window);
+  } else {
+    wlr_log (WLR_ERROR, "Can't close window %p", (void *)view->window);
+  }
+
+  view->server->xr_backend->num_windows--;
+
+  if (view == wxrd_get_focus (view->server)) {
+    wlr_log (WLR_DEBUG, "Closed focused window, focusing next");
+    wxrd_focus_next_view (view->server);
+  }
+
   wl_list_remove (&view->link);
 }
 
@@ -220,26 +240,6 @@ view_unmap (struct wxrd_view *view)
       wxrd_set_focus (wview);
       break;
     }
-  }
-
-
-
-  if (view->window) {
-    wlr_log (WLR_DEBUG, "Closing window %p", (void *)view->window);
-
-    xrd_shell_remove_window (view->server->xr_backend->xrd_shell,
-                             view->window);
-    xrd_window_close (view->window);
-    g_object_unref (view->window);
-  } else {
-    wlr_log (WLR_ERROR, "Can't close window %p", (void *)view->window);
-  }
-
-  view->server->xr_backend->num_windows--;
-
-  if (view == wxrd_get_focus (view->server)) {
-    wlr_log (WLR_DEBUG, "Closed focused window, focusing next");
-    wxrd_focus_next_view (view->server);
   }
 }
 
