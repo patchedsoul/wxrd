@@ -24,6 +24,8 @@ struct wxrd_server
 {
   struct wl_display *wl_display;
 
+  GMutex render_mutex;
+
   struct wlr_backend *backend;
   struct wxrd_xr_backend *xr_backend;
 

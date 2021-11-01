@@ -182,6 +182,8 @@ wxrd_submit_view_textures (struct wxrd_server *server)
     return;
   }
 
+  g_mutex_lock (&server->render_mutex);
+
   struct timespec now;
   clock_gettime (CLOCK_MONOTONIC, &now);
 
@@ -317,6 +319,8 @@ wxrd_submit_view_textures (struct wxrd_server *server)
   double now_f = get_now_f ();
   // wlr_log (WLR_DEBUG, "frametime %f", now_f - last_f);
   last_f = now_f;
+
+  g_mutex_unlock (&server->render_mutex);
 }
 
 static void
@@ -623,6 +627,8 @@ main (int argc, char *argv[])
     return 1;
   }
 
+  g_mutex_init (&server.render_mutex);
+
   bool is_nested = false;
   if (getenv ("DISPLAY") != NULL || getenv ("WAYLAND_DISPLAY") != NULL) {
     is_nested = true;
@@ -796,12 +802,17 @@ main (int argc, char *argv[])
 
   wlr_log (WLR_DEBUG, "Starting XR main loop");
   while (running) {
+
+    g_mutex_lock (&server.render_mutex);
+
     wl_display_flush_clients (server.wl_display);
     int ret = wl_event_loop_dispatch (wl_event_loop, 1);
     if (ret < 0) {
       wlr_log (WLR_ERROR, "wl_event_loop_dispatch failed");
       return 1;
     }
+
+    g_mutex_unlock (&server.render_mutex);
 
     while (g_main_context_pending (NULL)) {
       g_main_context_iteration (NULL, FALSE);
@@ -833,6 +844,8 @@ main (int argc, char *argv[])
   wl_display_destroy_clients (server.wl_display);
 
   // wl_display_destroy (server.wl_display);
+
+  g_mutex_clear (&server.render_mutex);
 
   return 0;
 }
