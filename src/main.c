@@ -222,6 +222,13 @@ wxrd_submit_view_textures (struct wxrd_server *server)
       continue;
     }
 
+    if (!G3K_IS_OBJECT (wxrd_view->window)) {
+      wlr_log (
+          WLR_ERROR,
+          "skip rendering for mapped dangling window. this shouldn't happen");
+      continue;
+    }
+
     if (xrd_window_get_texture (wxrd_view->window) != wxrd_tex->gk) {
       // TODO is this the right condition?
       bool has_rect = false;
