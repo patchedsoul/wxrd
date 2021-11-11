@@ -88,7 +88,7 @@ struct wxrd_view
   bool mapped;
   XrdWindow *window;
 
-  const char *title;
+  char *title;
 
   // must be set before calling view_map()
   struct wlr_box geometry;

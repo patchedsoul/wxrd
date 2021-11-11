@@ -50,6 +50,8 @@ wxrd_view_finish (struct wxrd_view *view)
     wxrd_focus_next_view (view->server);
   }
 
+  free (view->title);
+
   wl_list_remove (&view->link);
 }
 
@@ -270,5 +272,5 @@ view_get_surface (struct wxrd_view *view)
 void
 view_update_title (struct wxrd_view *view, const char *title)
 {
-  view->title = title;
+  view->title = strdup(title);
 }
