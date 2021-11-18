@@ -327,11 +327,15 @@ wxrd_submit_view_textures (struct wxrd_server *server)
 #endif
       }
 
-      // HACK on top of a HACK: ref the texture because on circular submits it
-      // gets unrefed
-      xrd_window_set_and_submit_texture_with_rect (wxrd_view->window,
-                                                   g_object_ref (wxrd_tex->gk),
-                                                   has_rect ? &rect : NULL);
+      // HACK: if we submit a new texture, xrdesktop will unref the old
+      // texture. But we need to keep the old texture around until the view is
+      // destroyed, therefore, ref the old texture.
+      GulkanTexture *prev_gk = xrd_window_get_texture (wxrd_view->window);
+      if (prev_gk != NULL && prev_gk != wxrd_tex->gk) {
+        g_object_ref (prev_gk);
+      }
+      xrd_window_set_and_submit_texture_with_rect (
+          wxrd_view->window, wxrd_tex->gk, has_rect ? &rect : NULL);
     }
 
     wxrd_view_for_each_surface (wxrd_view, send_frame_done_iterator, &now);
