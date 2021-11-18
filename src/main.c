@@ -342,10 +342,13 @@ wxrd_submit_view_textures (struct wxrd_server *server)
   }
 
 
+#if 0
   static double last_f = 0;
   double now_f = get_now_f ();
-  // wlr_log (WLR_DEBUG, "frametime %f", now_f - last_f);
+  wlr_log (WLR_DEBUG, "frametime %f", now_f - last_f);
+
   last_f = now_f;
+#endif
 
   g_mutex_unlock (&server->render_mutex);
 }
