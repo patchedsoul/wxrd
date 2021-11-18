@@ -172,13 +172,60 @@ get_now_f ()
   return timespec_to_msec_f (&now);
 }
 
+static bool
+validate_view (struct wxrd_view *wxrd_view)
+{
+  if (!wxrd_view->mapped) {
+    wlr_log (WLR_ERROR, "skipping wxrd_view %p %s, not mapped", wxrd_view,
+             wxrd_view->title);
+    return false;
+  }
 
+  struct wlr_surface *surface = view_get_surface (wxrd_view);
+
+  if (surface == NULL) {
+    wlr_log (WLR_ERROR, "skipping wxrd_view %p %s, surface == NULL", wxrd_view,
+             wxrd_view->title);
+    return false;
+  }
+
+  if (!wlr_surface_has_buffer (surface)) {
+    wlr_log (WLR_ERROR, "skipping wxrd_view %p %s, surface %p has no buffer",
+             wxrd_view, wxrd_view->title, surface);
+    return false;
+  }
+
+  struct wlr_texture *tex = surface->buffer->texture;
+  struct wxrd_texture *wxrd_tex = wxrd_get_texture (tex);
+
+  if (wxrd_tex->gk == NULL) {
+    wlr_log (WLR_ERROR, "skipping wxrd_view %p %s, gulkan texture == NULL",
+             wxrd_view, wxrd_view->title);
+    return false;
+  }
+
+  if (wxrd_view->window == NULL) {
+    wlr_log (WLR_ERROR, "skipping wxrd_view %p %s, XrdWindow == NULL",
+             wxrd_view, wxrd_view->title);
+    return false;
+  }
+
+  if (!G3K_IS_OBJECT (wxrd_view->window)) {
+    wlr_log (WLR_ERROR,
+             "skipping wxrd_view %p %s, XrdWindow %p has been cleared "
+             "already. this shouldn't happen",
+             wxrd_view, wxrd_view->title, wxrd_view->window);
+    return false;
+  }
+
+  return true;
+}
 
 static void
 wxrd_submit_view_textures (struct wxrd_server *server)
 {
   if (!server->rendering) {
-    wlr_log (WLR_DEBUG, "skip rendering views...");
+    wlr_log (WLR_DEBUG, "xrdesktop not rendering, skip rendering views...");
     return;
   }
 
@@ -190,44 +237,13 @@ wxrd_submit_view_textures (struct wxrd_server *server)
   struct wxrd_view *wxrd_view;
   wl_list_for_each_reverse (wxrd_view, &server->views, link)
   {
-
-
-    if (!wxrd_view->mapped) {
-      wlr_log (WLR_ERROR, "skip rendering xrd window, not mapped");
+    if (!validate_view (wxrd_view)) {
       continue;
     }
 
     struct wlr_surface *surface = view_get_surface (wxrd_view);
-
-    if (surface == NULL) {
-      wlr_log (WLR_DEBUG, "skip rendering window, don't have surface");
-      continue;
-    }
-
-    if (!wlr_surface_has_buffer (surface)) {
-      wlr_log (WLR_DEBUG, "skip rendering window, don't have buffer");
-      continue;
-    }
-
     struct wlr_texture *tex = surface->buffer->texture;
     struct wxrd_texture *wxrd_tex = wxrd_get_texture (tex);
-
-    if (wxrd_tex->gk == NULL) {
-      wlr_log (WLR_ERROR, "skip rendering xrd window, texture is NULL");
-      continue;
-    }
-
-    if (wxrd_view->window == NULL) {
-      wlr_log (WLR_ERROR, "skip rendering for NULL xrd window");
-      continue;
-    }
-
-    if (!G3K_IS_OBJECT (wxrd_view->window)) {
-      wlr_log (
-          WLR_ERROR,
-          "skip rendering for mapped dangling window. this shouldn't happen");
-      continue;
-    }
 
     if (xrd_window_get_texture (wxrd_view->window) != wxrd_tex->gk) {
       // TODO is this the right condition?
