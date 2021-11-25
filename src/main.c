@@ -27,8 +27,10 @@
 #include <wlr/types/wlr_primary_selection_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
-#include <wlr/backend/noop.h>
+#include <wlr/backend/headless.h>
 #include <wlr/backend/libinput.h>
+
+#include <wlr/render/allocator.h>
 
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/interfaces/wlr_input_device.h>
@@ -358,7 +360,7 @@ output_handle_frame (struct wl_listener *listener, void *data)
 {
   struct wxrd_output *output = wl_container_of (listener, output, frame);
   struct wxrd_server *server = output->server;
-  struct wlr_renderer *renderer = wlr_backend_get_renderer (server->backend);
+  struct wlr_renderer *renderer = server->xr_backend->renderer;
 
   if (!wlr_output_attach_render (output->output, NULL)) {
     return;
@@ -386,6 +388,11 @@ handle_new_output (struct wl_listener *listener, void *data)
 
   struct wxrd_server *server = wl_container_of (listener, server, new_output);
   struct wlr_output *wlr_output = data;
+
+  /* Configures the output created by the backend to use our allocator
+   * and our renderer. Must be done once, before commiting the output */
+  wlr_output_init_render (wlr_output, server->allocator,
+                          server->xr_backend->renderer);
 
   struct wxrd_output *output = calloc (1, sizeof (*output));
   output->output = wlr_output;
@@ -673,15 +680,15 @@ main (int argc, char *argv[])
 
 
   char *headless_env = getenv ("WXRD_HEADLESS");
-  struct wlr_backend *noop_backend = NULL;
+  struct wlr_backend *headless_backend = NULL;
 
   bool headless_mode = headless_env || !is_nested;
 
   if (headless_mode) {
     server.backend = wlr_multi_backend_create (server.wl_display);
 
-    noop_backend = wlr_noop_backend_create (server.wl_display);
-    wlr_multi_backend_add (server.backend, noop_backend);
+    headless_backend = wlr_headless_backend_create (server.wl_display);
+    wlr_multi_backend_add (server.backend, headless_backend);
 
     // TODO: input on headless/drm
 #if 0
@@ -709,6 +716,9 @@ main (int argc, char *argv[])
   wlr_multi_backend_add (server.backend, &server.xr_backend->base);
 
   wlr_multi_for_each_backend (server.backend, backend_iterator, &server);
+
+  server.allocator
+      = wlr_allocator_autocreate (server.backend, server.xr_backend->renderer);
 
 
 
@@ -766,7 +776,7 @@ main (int argc, char *argv[])
                     output_bind);
 
   if (headless_mode) {
-    server.headless.output = wlr_noop_add_output (noop_backend);
+    server.headless.output = wlr_headless_add_output (headless_backend, 1, 1);
 
     int w = 800;
     int h = 600;

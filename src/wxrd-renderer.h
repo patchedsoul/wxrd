@@ -57,7 +57,6 @@ struct wxrd_texture
   struct wlr_texture wlr_texture;
   struct wxrd_renderer *renderer;
 
-  bool inverted_y;
   bool has_alpha;
 
   uint32_t drm_format; // used to interpret upload data

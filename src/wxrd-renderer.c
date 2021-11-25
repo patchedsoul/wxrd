@@ -316,11 +316,11 @@ static const struct wlr_drm_format_set *
 wxrd_get_dmabuf_render_formats (struct wlr_renderer *wlr_renderer)
 {
   TRACE_FN
-  struct wxrd_renderer *renderer = wxrd_get_renderer (wlr_renderer);
-  wlr_log (WLR_ERROR, "unimplemented %s", __FUNCTION__);
-  return NULL;
-  //   struct wlr_egl *egl = wxrd_renderer_get_egl (&renderer->wlr_renderer);
-  //   return wlr_egl_get_dmabuf_render_formats (egl);
+
+  // wlr_log (WLR_ERROR, "unimplemented %s", __FUNCTION__);
+
+  // TODO: we don't really need the output rendered anyway
+  return wxrd_get_dmabuf_formats (wlr_renderer);
 }
 
 static uint32_t
@@ -782,8 +782,6 @@ wxrd_texture_from_dmabuf (struct wlr_renderer *wlr_renderer,
   texture->renderer = renderer;
   texture->has_alpha = true;
   texture->drm_format = DRM_FORMAT_INVALID; // texture can't be written
-  texture->inverted_y
-      = (attribs->flags & WLR_DMABUF_ATTRIBUTES_FLAGS_Y_INVERT) != 0;
 
   GulkanClient *client = xrd_shell_get_gulkan (renderer->xrd_shell);
 
@@ -941,7 +939,7 @@ wxrd_bind_buffer (struct wlr_renderer *wlr_renderer,
                   struct wlr_buffer *wlr_buffer)
 {
   TRACE_FN
-  wlr_log (WLR_ERROR, "bind buffer");
+  // wlr_log (WLR_ERROR, "bind buffer");
   return true;
 }
 

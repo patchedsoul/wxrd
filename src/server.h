@@ -29,6 +29,8 @@ struct wxrd_server
   struct wlr_backend *backend;
   struct wxrd_xr_backend *xr_backend;
 
+  struct wlr_allocator *allocator;
+
   // used with noop backend
   struct
   {
