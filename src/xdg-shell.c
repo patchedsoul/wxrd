@@ -183,6 +183,11 @@ handle_xdg_surface_map (struct wl_listener *listener, void *data)
   } else {
     title = "popup window";
   }
+
+  if (!title) {
+    title = "unnamed window";
+  }
+
   view_update_title (&view->base, title);
 
   wlr_xdg_surface_get_geometry (view->xdg_surface, &view->base.geometry);
