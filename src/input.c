@@ -21,6 +21,9 @@
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/interfaces/wlr_input_device.h>
+
 #include "backend.h"
 #include "wxrd-renderer.h"
 #include <drm_fourcc.h>
@@ -129,16 +132,8 @@ handle_new_keyboard (struct wxrd_server *server,
   keyboard->server = server;
   keyboard->device = device;
 
-  /* TODO: Source keymap et al from parent Wayland compositor if possible
-   */
-  struct xkb_rule_names rules = { 0 };
-  struct xkb_context *context = xkb_context_new (XKB_CONTEXT_NO_FLAGS);
-  struct xkb_keymap *keymap
-      = xkb_map_new_from_names (context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-  wlr_keyboard_set_keymap (device->keyboard, keymap);
-  xkb_keymap_unref (keymap);
-  xkb_context_unref (context);
+  wlr_keyboard_set_keymap (device->keyboard, server->default_keymap);
   wlr_keyboard_set_repeat_info (device->keyboard, 25, 600);
 
   keyboard->modifiers.notify = keyboard_handle_modifiers;
@@ -583,6 +578,254 @@ handle_request_set_primary_selection (struct wl_listener *listener, void *data)
   wlr_seat_set_primary_selection (server->seat, event->source, event->serial);
 }
 
+static void
+keyboard_destroy (struct wlr_keyboard *kyeboard)
+{}
+
+static const struct wlr_keyboard_impl keyboard_impl = {
+  .destroy = keyboard_destroy,
+};
+
+static void
+keyboard_device_destroy (struct wlr_input_device *dev)
+{}
+
+static const struct wlr_input_device_impl keyboard_device_impl = {
+  .destroy = keyboard_device_destroy,
+};
+
+// utf8 and keymap code borrowed from gamescope ime.cpp
+
+static const uint32_t UTF8_INVALID = 0xFFFD;
+static size_t
+utf8_size (const char *str)
+{
+  uint8_t u8 = (uint8_t)str[0];
+  if ((u8 & 0x80) == 0) {
+    return 1;
+  } else if ((u8 & 0xE0) == 0xC0) {
+    return 2;
+  } else if ((u8 & 0xF0) == 0xE0) {
+    return 3;
+  } else if ((u8 & 0xF8) == 0xF0) {
+    return 4;
+  } else {
+    return 0;
+  }
+}
+
+static uint32_t
+utf8_decode (const char **str_ptr)
+{
+  const char *str = *str_ptr;
+  size_t size = utf8_size (str);
+  if (size == 0) {
+    *str_ptr = &str[1];
+    return UTF8_INVALID;
+  }
+
+  *str_ptr = &str[size];
+
+  const uint32_t masks[] = { 0x7F, 0x1F, 0x0F, 0x07 };
+  uint32_t ret = (uint32_t)str[0] & masks[size - 1];
+  for (size_t i = 1; i < size; i++) {
+    ret <<= 6;
+    ret |= str[i] & 0x3F;
+  }
+  return ret;
+}
+
+/* Some clients assume keycodes are coming from evdev and interpret them. Only
+ * use keys that would normally produce characters for our emulated events. */
+static const uint32_t allow_keycodes[] = {
+  KEY_1,     KEY_2,         KEY_3,         KEY_4,          KEY_5,
+  KEY_6,     KEY_7,         KEY_8,         KEY_9,          KEY_0,
+  KEY_MINUS, KEY_EQUAL,     KEY_Q,         KEY_W,          KEY_E,
+  KEY_R,     KEY_T,         KEY_Y,         KEY_U,          KEY_I,
+  KEY_O,     KEY_P,         KEY_LEFTBRACE, KEY_RIGHTBRACE, KEY_A,
+  KEY_S,     KEY_D,         KEY_F,         KEY_G,          KEY_H,
+  KEY_J,     KEY_K,         KEY_L,         KEY_SEMICOLON,  KEY_APOSTROPHE,
+  KEY_GRAVE, KEY_BACKSLASH, KEY_Z,         KEY_X,          KEY_C,
+  KEY_V,     KEY_B,         KEY_N,         KEY_M,          KEY_COMMA,
+  KEY_DOT,   KEY_SLASH,
+};
+
+static const size_t allow_keycodes_len
+    = sizeof (allow_keycodes) / sizeof (allow_keycodes[0]);
+
+struct wlserver_input_method_key
+{
+  uint32_t ch;
+  uint32_t keycode;
+  xkb_keysym_t keysym;
+};
+
+static uint32_t
+keycode_from_ch (struct wxrd_server *server,
+                 uint32_t ch,
+                 struct wlserver_input_method_key *keys,
+                 uint32_t *keys_count)
+{
+  for (uint32_t i = 0; i < *keys_count; i++) {
+    if (keys[i].ch == ch) {
+      return keys[i].keycode;
+    }
+  }
+
+  xkb_keysym_t keysym = xkb_utf32_to_keysym (ch);
+  if (keysym == XKB_KEY_NoSymbol) {
+    return XKB_KEYCODE_INVALID;
+  }
+
+  if (*keys_count >= allow_keycodes_len) {
+    // TODO: maybe use keycodes above KEY_MAX?
+    wlr_log (WLR_ERROR, "Key codes exhausted!");
+    return XKB_KEYCODE_INVALID;
+  }
+
+  uint32_t next_index = *keys_count;
+
+  uint32_t keycode = allow_keycodes[next_index];
+  keys[next_index] = (struct wlserver_input_method_key){ .ch = ch,
+                                                         .keycode = keycode,
+                                                         .keysym = keysym };
+
+  *keys_count = *keys_count + 1;
+
+  return keycode;
+}
+
+static struct xkb_keymap *
+generate_keymap (struct wxrd_server *server,
+                 struct wlserver_input_method_key *keys,
+                 uint32_t keys_count)
+{
+  uint32_t keycode_offset = 8;
+
+  char *str = NULL;
+  size_t str_size = 0;
+  FILE *f = open_memstream (&str, &str_size);
+
+  uint32_t min_keycode = allow_keycodes[0];
+  uint32_t max_keycode = allow_keycodes[keys_count];
+  fprintf (f,
+           "xkb_keymap {\n"
+           "\n"
+           "xkb_keycodes \"(unnamed)\" {\n"
+           "	minimum = %u;\n"
+           "	maximum = %u;\n",
+           keycode_offset + min_keycode, keycode_offset + max_keycode);
+
+  for (uint32_t i = 0; i < keys_count; i++) {
+    uint32_t keycode = keys[i].keycode;
+    fprintf (f, "	<K%u> = %u;\n", keycode, keycode + keycode_offset);
+  }
+
+  // TODO: should we really be including "complete" here? squeekboard seems
+  // to get away with some other workarounds:
+  // https://gitlab.gnome.org/World/Phosh/squeekboard/-/blob/fc411d680b0138042b95b8a630401607726113d4/src/keyboard.rs#L180
+  fprintf (f,
+           "};\n"
+           "\n"
+           "xkb_types \"(unnamed)\" { include \"complete\" };\n"
+           "\n"
+           "xkb_compatibility \"(unnamed)\" { include \"complete\" };\n"
+           "\n"
+           "xkb_symbols \"(unnamed)\" {\n");
+
+  for (uint32_t i = 0; i < keys_count; i++) {
+    uint32_t keycode = keys[i].keycode;
+    xkb_keysym_t keysym = keys[i].keysym;
+
+    char keysym_name[256];
+    int ret = xkb_keysym_get_name (keysym, keysym_name, sizeof (keysym_name));
+    if (ret <= 0) {
+      wlr_log (WLR_ERROR, "xkb_keysym_get_name failed for keysym %u", keysym);
+      return NULL;
+    }
+
+    fprintf (f, "	key <K%u> {[ %s ]};\n", keycode, keysym_name);
+  }
+
+  fprintf (f,
+           "};\n"
+           "\n"
+           "};\n");
+
+  fclose (f);
+
+  struct xkb_context *context = xkb_context_new (XKB_CONTEXT_NO_FLAGS);
+  struct xkb_keymap *keymap = xkb_keymap_new_from_buffer (
+      context, str, str_size, XKB_KEYMAP_FORMAT_TEXT_V1,
+      XKB_KEYMAP_COMPILE_NO_FLAGS);
+  xkb_context_unref (context);
+
+  free (str);
+
+  return keymap;
+}
+
+void
+type_text (struct wxrd_server *server, const char *text)
+{
+  if (text == NULL) {
+    return;
+  }
+
+  xkb_keycode_t keycodes[allow_keycodes_len];
+  uint32_t keycode_count = 0;
+
+  struct wlserver_input_method_key keys[allow_keycodes_len];
+  uint32_t keys_count = 0;
+
+  while (text[0] != '\0') {
+    uint32_t ch = utf8_decode (&text);
+
+    xkb_keycode_t keycode = keycode_from_ch (server, ch, keys, &keys_count);
+    if (keycode == XKB_KEYCODE_INVALID) {
+      wlr_log (WLR_ERROR, "warning: cannot type character U+%X", ch);
+      continue;
+    }
+
+    wlr_log (WLR_DEBUG, "ch %s (%d) -> keycode %d", (char *)&ch, ch, keycode);
+
+    keycodes[keycode_count++] = keycode;
+  }
+
+  struct xkb_keymap *keymap = generate_keymap (server, keys, keys_count);
+  if (keymap == NULL) {
+    wlr_log (WLR_ERROR, "failed to generate keymap");
+    return;
+  }
+
+  struct wlr_seat *seat = server->seat;
+
+
+  struct wlr_keyboard *keyboard = &server->vr_keyboard;
+  struct wlr_input_device *keyboard_device = &server->vr_keyboard_device;
+
+  wlr_keyboard_set_keymap (keyboard, keymap);
+  xkb_keymap_unref (keymap);
+
+  wlr_seat_set_keyboard (seat, keyboard_device);
+
+
+  struct wlr_surface *surface = view_get_surface (wxrd_get_focus (server));
+  wlr_seat_keyboard_notify_enter (seat, surface, keyboard->keycodes,
+                                  keyboard->num_keycodes,
+                                  &keyboard->modifiers);
+
+
+  for (size_t i = 0; i < keycode_count; i++) {
+    wlr_seat_keyboard_notify_key (seat, get_now (), keycodes[i],
+                                  WL_KEYBOARD_KEY_STATE_PRESSED);
+    wlr_seat_keyboard_notify_key (seat, get_now () + 1, keycodes[i],
+                                  WL_KEYBOARD_KEY_STATE_RELEASED);
+
+    wlr_log (WLR_DEBUG, "keycode input: %d", keycodes[i]);
+  }
+}
+
 void
 wxrd_input_init (struct wxrd_server *server)
 {
@@ -617,4 +860,22 @@ wxrd_input_init (struct wxrd_server *server)
   struct wlr_xcursor *xcursor
       = wlr_xcursor_manager_get_xcursor (server->cursor_mgr, "left_ptr", 2);
   wxrd_cursor_set_xcursor (&server->cursor, xcursor);
+
+  /* TODO: Source keymap et al from parent Wayland compositor if possible
+   */
+  struct xkb_rule_names rules = { 0 };
+  server->xkb_context = xkb_context_new (XKB_CONTEXT_NO_FLAGS);
+  server->default_keymap = xkb_map_new_from_names (
+      server->xkb_context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+  wlr_keyboard_init (&server->vr_keyboard, &keyboard_impl);
+  wlr_input_device_init (&server->vr_keyboard_device,
+                         WLR_INPUT_DEVICE_KEYBOARD, &keyboard_device_impl,
+                         "xrdesktop_vr_keyboard", 0, 0);
+  server->vr_keyboard_device.keyboard = &server->vr_keyboard;
+
+  wlr_keyboard_set_repeat_info (&server->vr_keyboard, 0, 0);
+  // TODO
+  // xkb_keymap_unref (server->default_keymap);
+  // xkb_context_unref (server->xkb_context);
 }

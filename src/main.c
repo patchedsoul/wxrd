@@ -146,34 +146,6 @@ send_frame_done_iterator (struct wlr_surface *surface,
   // wlr_log(WLR_ERROR, "send frame done");
 }
 
-static int64_t
-timespec_to_msec (const struct timespec *a)
-{
-  return (int64_t)a->tv_sec * 1000 + a->tv_nsec / 1000000;
-}
-
-static double
-timespec_to_msec_f (const struct timespec *a)
-{
-  return (double)a->tv_sec * 1000. + (double)a->tv_nsec / 1000000.;
-}
-
-int64_t
-get_now ()
-{
-  struct timespec now;
-  clock_gettime (CLOCK_MONOTONIC, &now);
-  return timespec_to_msec (&now);
-}
-
-double
-get_now_f ()
-{
-  struct timespec now;
-  clock_gettime (CLOCK_MONOTONIC, &now);
-  return timespec_to_msec_f (&now);
-}
-
 static bool
 validate_view (struct wxrd_view *wxrd_view)
 {
@@ -583,12 +555,12 @@ _move_cursor_cb (XrdShell *xrd_shell,
 
 static void
 _keyboard_press_cb (XrdShell *xrd_shell,
-                    GdkEventKey *event,
+                    G3kKeyEvent *event,
                     struct wxrd_server *server)
 {
   (void)xrd_shell;
-  wlr_log (WLR_ERROR, "Unimplemented: key (%d): %s\n", event->length,
-           event->string);
+  type_text (server, event->string);
+  wlr_log (WLR_DEBUG, "Typing string: %s", event->string);
 }
 
 static void
@@ -736,11 +708,10 @@ main (int argc, char *argv[])
   server.xr_backend->move_source
       = g_signal_connect (server.xr_backend->xrd_shell, "move-cursor-event",
                           (GCallback)_move_cursor_cb, &server);
-  /* TODO: new keyboard event
-  xr_backend->keyboard_source
-  = g_signal_connect (xr_backend->xrd_shell, "keyboard-press-event",
+  server.xr_backend->keyboard_source
+      = g_signal_connect (server.xr_backend->xrd_shell, "keyboard-press-event",
                           (GCallback)_keyboard_press_cb, &server);
-  */
+
   server.xr_backend->quit_source
       = g_signal_connect (server.xr_backend->xrd_shell, "state-change-event",
                           (GCallback)_state_change_cb, &server);

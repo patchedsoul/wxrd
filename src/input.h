@@ -79,4 +79,7 @@ wxrd_cursor_get_texture (struct wxrd_cursor *cursor,
                          int *hotspot_y,
                          int *scale);
 
+void
+type_text (struct wxrd_server *server, const char *text);
+
 #endif

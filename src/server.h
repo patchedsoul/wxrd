@@ -39,6 +39,12 @@ struct wxrd_server
     struct wlr_keyboard *virtual_kbd;
   } headless;
 
+  struct xkb_context *xkb_context;
+  struct xkb_keymap *default_keymap;
+
+  struct wlr_keyboard vr_keyboard;
+  struct wlr_input_device vr_keyboard_device;
+
   struct wlr_xdg_shell *xdg_shell;
 
   struct wl_seat *remote_seat;
@@ -78,5 +84,19 @@ struct wxrd_server
   struct wl_listener request_set_selection;
   struct wl_listener request_set_primary_selection;
 };
+
+static inline double
+timespec_to_msec_f (const struct timespec *a)
+{
+  return (double)a->tv_sec * 1000. + (double)a->tv_nsec / 1000000.;
+}
+
+static inline int64_t
+get_now ()
+{
+  struct timespec now;
+  clock_gettime (CLOCK_MONOTONIC, &now);
+  return timespec_to_msec_f (&now);
+}
 
 #endif
