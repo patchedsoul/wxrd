@@ -190,7 +190,7 @@ view_map (struct wxrd_view *view)
       wlr_log (WLR_DEBUG, "is top level window");
       wxrd_set_focus (view);
 
-      graphene_point3d_t p = { 0, 1, -2.5 + z_offset };
+      graphene_point3d_t p = { 0, 1, -3.5 + z_offset };
       graphene_matrix_t t;
       graphene_matrix_init_identity (&t);
       graphene_matrix_translate (&t, &p);
