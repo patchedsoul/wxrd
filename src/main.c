@@ -150,8 +150,10 @@ static bool
 validate_view (struct wxrd_view *wxrd_view)
 {
   if (!wxrd_view->mapped) {
+#if 1
     wlr_log (WLR_ERROR, "skipping wxrd_view %p %s, not mapped", wxrd_view,
              wxrd_view->title);
+#endif
     return false;
   }
 
