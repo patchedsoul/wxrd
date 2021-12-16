@@ -11,6 +11,7 @@
 
 #include "xwayland.h"
 
+#include <assert.h>
 #include "input.h"
 #include "server.h"
 #include "view.h"
@@ -628,6 +629,20 @@ handle_commit (struct wl_listener *listener, void *data)
   view_damage_from(view);
 #endif
 }
+
+static struct wxrd_xwayland_view *
+xwayland_view_from_surface (struct wlr_xwayland_surface *xsurface)
+{
+  struct wxrd_view *view = xsurface->data;
+  if (view == NULL) {
+    wlr_log (WLR_ERROR, "parent view was NULL");
+    return NULL;
+  }
+
+  assert (view->impl == &view_impl);
+  return (struct wxrd_xwayland_view *)view;
+}
+
 static void
 handle_map (struct wl_listener *listener, void *data)
 {
@@ -652,7 +667,43 @@ handle_map (struct wl_listener *listener, void *data)
   view->geometry.y = 0;
   view->geometry.width = xsurface->width;
   view->geometry.height = xsurface->height;
-  wlr_log (WLR_DEBUG, "xwayland %dx%d", xsurface->width, xsurface->height);
+  wlr_log (WLR_DEBUG, "xwayland %dx%d parent %p", xsurface->width,
+           xsurface->height, xsurface->parent);
+
+  if (xsurface->parent) {
+    struct wlr_surface *wlr_surf_parent = xsurface->parent->surface;
+
+    struct wlr_xwayland_surface *xwayland_surf_parent
+        = wlr_xwayland_surface_from_wlr_surface (wlr_surf_parent);
+    struct wxrd_xwayland_view *parent_view
+        = xwayland_view_from_surface (xwayland_surf_parent);
+
+    wlr_log (WLR_DEBUG, "parent surf %p", (void *)wlr_surf_parent);
+    if (parent_view) {
+      int parent_content_width = xwayland_surf_parent->width;
+      int parent_content_height = xwayland_surf_parent->height;
+
+      int parent_center_x = parent_content_width / 2;
+      int parent_center_y = parent_content_height / 2;
+
+      int child_center_x = xsurface->x + xsurface->width / 2;
+      int child_center_y = xsurface->y + xsurface->height / 2;
+
+      graphene_point_t offset = { .x = 0, .y = 0 };
+      offset.x = child_center_x - parent_center_x;
+      offset.y = -(child_center_y - parent_center_y);
+
+      view->parent = &parent_view->view;
+      view->offset_to_parent = offset;
+
+      wlr_log (WLR_DEBUG,
+               "Found parent, parent center %d,%d, "
+               "child center %d,%d offset %f,%f",
+               parent_center_x, parent_center_y, child_center_x,
+               child_center_y, offset.x, offset.y);
+    }
+  }
+
 
   view_map (view);
   wlr_log (WLR_DEBUG, "%s view %p %s", __FUNCTION__, (void *)view,
