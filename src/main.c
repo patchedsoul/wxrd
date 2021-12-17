@@ -525,6 +525,12 @@ _move_cursor_cb (XrdShell *xrd_shell,
       should_focus = xdg_surf->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL;
     }
 
+    // in general, never focus child windows. e.g. xwayland child windows will
+    // be closed when focused
+    if (xrd_focus->parent != NULL) {
+      should_focus = false;
+    }
+
     if (should_focus && wxrd_get_focus (server) != xrd_focus) {
       // we only refocus another window when we focus a new
       // window
