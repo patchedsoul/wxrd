@@ -66,17 +66,7 @@ egl_dep = dependency('egl')
 
 # Try first to find wlroots as a subproject, then as a system dependency
 wlroots_version = ['>=0.15.0']
-wlroots_proj = subproject(
-  'wlroots',
-  default_options: ['examples=false', 'default_library=static'],
-  required: false,
-  version: wlroots_version,
-)
-if wlroots_proj.found()
-  wlroots_dep = wlroots_proj.get_variable('wlroots')
-else
-  wlroots_dep = dependency('wlroots', version: wlroots_version)
-endif
+wlroots_dep = dependency('wlroots', version: wlroots_version)
 
 # generate xdg-shell-protocol.h
 wl_protos_src = []
